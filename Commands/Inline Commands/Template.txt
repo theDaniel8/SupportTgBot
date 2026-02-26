@@ -1,0 +1,20 @@
+using System.Runtime.CompilerServices;
+using Microsoft.Data.Sqlite;
+using Telegram.Bot;
+using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
+public class Name : InlineCommand
+{
+    public Name(TelegramBotClient bot, DatabaseService db) : base(bot, db)
+    {
+    }
+
+    public override string CallbackData => "CallbackData";
+
+    public override async Task Execute(CallbackQuery query)
+    {
+        
+    }
+}
