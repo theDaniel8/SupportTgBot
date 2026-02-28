@@ -32,8 +32,12 @@ public class SendGreeting : InlineCommand
         }
         else
         {
+            BotUser? targetUser = _db.GetBotUser(targetId.Value);
+            string topicName = targetUser?.Name ?? "Без имени";
+
             await _bot.SendMessage(targetId.Value, admin.Greeting);
-            await _bot.SendMessage(query.Message.Chat.Id, $"👋 Ваше приветствие было отправлено пользователю.", messageThreadId: query.Message.MessageThreadId);   
+            await _bot.SendMessage(query.Message.Chat.Id, $"👋 Админ {query.From.FirstName} отправил приветствие.", messageThreadId: query.Message.MessageThreadId); 
+            await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{query.From.FirstName} | {topicName}");
             await _log.MessageFromAdmin(targetId.Value, admin.Greeting, query.From.FirstName);
         }
     }

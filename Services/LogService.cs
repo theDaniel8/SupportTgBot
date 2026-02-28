@@ -15,7 +15,7 @@ public class LogService
 
     public async Task MessageFromAdmin(long targetId, string text, string adminName)
     {
-        await _bot.SendMessage(Settings.GroupId, $"Админ <b>{adminName}</b> отправил сообщение\nпользователю <b>{_db.GetBotUser(targetId)?.Name}</b>:\n\n{text}", 
+        await _bot.SendMessage(Settings.GroupId, $"From: <b>{adminName}</b>\nTo: <b>{_db.GetBotUser(targetId)?.Name}</b>\n\n{text}", 
         messageThreadId: Settings.LogThreadId, parseMode: ParseMode.Html);
     }
 
