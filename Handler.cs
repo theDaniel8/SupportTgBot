@@ -18,7 +18,6 @@ public class Handler
     private readonly List<InlineCommand> _inlineCommands;
     private readonly List<ReplyCommand> _replyCommands;
 
-
     public Handler(TelegramBotClient bot, DatabaseService db, LogService log)
     {
         _bot = bot;
@@ -60,6 +59,13 @@ public class Handler
         _db.UpsertUser(msg.From.Id, msg.From.Username, $"{msg.From.FirstName} {msg.From.LastName}".Trim());
         BotUser? botUser = _db.GetBotUser(msg.From.Id);
         if (botUser == null) return;
+
+        // Проверка подписки на канал (только для личных сообщений)
+        if (msg.Chat.Type == ChatType.Private && !await IsSubscribedToChannel(msg.From.Id, _bot))
+        {
+            await SendSubscriptionRequired(msg.Chat.Id);
+            return;
+        }
 
         foreach (SlashCommand command in _slashCommands)
         {
@@ -124,6 +130,15 @@ public class Handler
         {
             BotUser? botUser = _db.GetBotUser(query.From.Id);
             if (botUser == null) return;
+
+            // Проверка подписки для inline-команд
+            if (query.Message?.Chat.Type == ChatType.Private && !await IsSubscribedToChannel(query.From.Id, _bot))
+            {
+                await SendSubscriptionRequired(query.Message.Chat.Id);
+                await _bot.AnswerCallbackQuery(query.Id);
+                return;
+            }
+
             foreach (InlineCommand command in _inlineCommands)
             {
                 if (query.Data != null && query.Data.StartsWith(command.CallbackData))
@@ -135,6 +150,29 @@ public class Handler
         }
     }
 
+    public static async Task<bool> IsSubscribedToChannel(long userId, TelegramBotClient bot)
+    {
+        try
+        {
+            ChatMember member = await bot.GetChatMember(Settings.RequiredChannelId, userId);
+            return member.Status is not (ChatMemberStatus.Left or ChatMemberStatus.Kicked);
+        }
+        catch
+        {
+            // Если бот не администратор канала или канал не найден — пропускаем проверку
+            return true;
+        }
+    }
+
+    private async Task SendSubscriptionRequired(long chatId)
+    {
+        await _bot.SendMessage(chatId,"⚠️ Для использования бота необходимо подписаться на наш канал.",
+            replyMarkup: new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithUrl("📢 Подписаться на канал", Settings.RequiredChannelUrl) },
+                new[] { InlineKeyboardButton.WithCallbackData("✅ Я подписался", "checkSubscription") }
+            }));
+    }
 
     public static InlineKeyboardMarkup createTopicMarkup = new InlineKeyboardMarkup(new[] 
     { 
@@ -142,5 +180,15 @@ public class Handler
         new InlineKeyboardButton[] { new InlineKeyboardButton("🫂 Отправить прощание", $"sendFarewell")  },
         new InlineKeyboardButton[] { new InlineKeyboardButton("❌ Удалить чат", $"deleteTopic") },
     });
+
+    private async Task MainMenu(long id)
+    {
+        await _bot.SendPhoto(id, "", "<b>👋 Добро пожаловать в службу поддержки!</b>\n\nВыберите действие:", parseMode: ParseMode.Html, 
+        replyMarkup: new InlineKeyboardMarkup(new[]
+        {
+            new[] { InlineKeyboardButton.WithCallbackData("💬 Начать общение", $"sendGreeting") },
+            new[] { InlineKeyboardButton.WithCallbackData("📕 Правилами", $"sendFarewell")  },
+        }));
+    }
 
 }
