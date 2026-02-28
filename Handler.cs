@@ -41,6 +41,7 @@ public class Handler
             new CancelDeleteTopic(bot, db),
             new SendGreeting(bot, db, log),
             new SendFarewell(bot, db, log),
+            new CheckSubscription(bot, db),
         };
 
         _replyCommands = new List<ReplyCommand>
@@ -131,8 +132,10 @@ public class Handler
             BotUser? botUser = _db.GetBotUser(query.From.Id);
             if (botUser == null) return;
 
-            // Проверка подписки для inline-команд
-            if (query.Message?.Chat.Type == ChatType.Private && !await IsSubscribedToChannel(query.From.Id, _bot))
+            // Проверка подписки для inline-команд (пропускаем checkSubscription, чтобы он мог обработаться)
+            if (query.Data != "checkSubscription"
+                && query.Message?.Chat.Type == ChatType.Private
+                && !await IsSubscribedToChannel(query.From.Id, _bot))
             {
                 await SendSubscriptionRequired(query.Message.Chat.Id);
                 await _bot.AnswerCallbackQuery(query.Id);
