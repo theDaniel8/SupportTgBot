@@ -80,7 +80,7 @@ public class Handler
         // Создание чата с пользователем
         if (msg.Chat.Type == ChatType.Private && !_db.IsInDialogue(msg.From.Id) && !botUser.Ban)
         {   
-            ForumTopic topic = await _bot.CreateForumTopic(Settings.GroupId, msg.From.FirstName);
+            ForumTopic topic = await _bot.CreateForumTopic(Settings.GroupId, "⌛ Ожидание администратора");
             _db.InsertDialogue(topic.MessageThreadId, msg.From.Id);
 
             string username = msg.From.Username == null ? "Не установлен" : "@" + msg.From.Username;
