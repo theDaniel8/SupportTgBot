@@ -30,7 +30,7 @@ public class DialogueService
         string caption = $"💬 Пользователь создал чат\n\n<b>Юзернейм:</b> {username}\n<b>Ник:</b> {msg.From.FirstName} {msg.From.LastName}\n<b>ID:</b> {msg.From.Id}";
 
         UserProfilePhotos photos = await _bot.GetUserProfilePhotos(msg.From.Id, limit: 1);
-        
+
         if (photos.Photos.Length > 0)
         {
             PhotoSize photo = photos.Photos[0].Last();
@@ -76,12 +76,13 @@ public class DialogueService
             return false;
 
         // Игнорируем служебные сообщения форума (создание топика, редактирование и т.д.)
-        if (msg.Type is MessageType.ForumTopicCreated or MessageType.ForumTopicEdited 
+        if (msg.Type is MessageType.ForumTopicCreated or MessageType.ForumTopicEdited
             or MessageType.ForumTopicClosed or MessageType.ForumTopicReopened)
             return true;
 
-        if (msg.Type == MessageType.Text && (string.IsNullOrEmpty(msg.Text) || msg.Text.StartsWith("//")))
-            return true; // Комментарий — считаем обработанным, но не пересылаем
+        if (msg.Text?.StartsWith("//") == true || msg.Caption?.StartsWith("//") == true) 
+            return true; 
+        // Комментарий — считаем обработанным, но не пересылаем
 
         string text;
         Admin? admin = _db.GetAdmin(msg.From!.Id);
@@ -90,7 +91,7 @@ public class DialogueService
             switch (msg.Type)
             {
                 case MessageType.Text:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Text! ;
+                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Text!;
                     await _bot.SendMessage(userId, text);
                     await _log.MessageFromAdmin(userId, text, msg.From.FirstName);
                     break;
@@ -103,11 +104,11 @@ public class DialogueService
 
                 case MessageType.Photo:
                     text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
-                    await _bot.SendPhoto(userId, msg.Photo!.Last().FileId, caption: text );
+                    await _bot.SendPhoto(userId, msg.Photo!.Last().FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине фото от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
-                
+
                 case MessageType.Video:
                     text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendVideo(userId, msg.Video!.FileId, caption: text);
@@ -148,9 +149,9 @@ public class DialogueService
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логирование GIF от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
-                
+
                 default:
-                    await _bot.SendMessage(msg.Chat.Id, "❌ Данный вид сообщений не поддерживается.", 
+                    await _bot.SendMessage(msg.Chat.Id, "❌ Данный вид сообщений не поддерживается.",
                         messageThreadId: msg.MessageThreadId);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логирование неподдерживаемого сообщения от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
@@ -159,12 +160,12 @@ public class DialogueService
         }
         catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("bot was blocked by the user"))
         {
-            await _bot.SendMessage(msg.Chat.Id, "❌ Пользователь заблокировал бота.", 
+            await _bot.SendMessage(msg.Chat.Id, "❌ Пользователь заблокировал бота.",
                 messageThreadId: msg.MessageThreadId);
             return false;
         }
         return true;
     }
 
-    
+
 }
