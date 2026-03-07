@@ -75,6 +75,11 @@ public class DialogueService
         if (_db.GetUserIdByTopicId(msg.MessageThreadId) is not long userId || msg.Chat.Id != Settings.GroupId)
             return false;
 
+        // Игнорируем служебные сообщения форума (создание топика, редактирование и т.д.)
+        if (msg.Type is MessageType.ForumTopicCreated or MessageType.ForumTopicEdited 
+            or MessageType.ForumTopicClosed or MessageType.ForumTopicReopened)
+            return true;
+
         if (msg.Type == MessageType.Text && (string.IsNullOrEmpty(msg.Text) || msg.Text.StartsWith("//")))
             return true; // Комментарий — считаем обработанным, но не пересылаем
 
@@ -97,35 +102,35 @@ public class DialogueService
                     break;
 
                 case MessageType.Photo:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendPhoto(userId, msg.Photo!.Last().FileId, caption: text );
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине фото от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
                 
                 case MessageType.Video:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendVideo(userId, msg.Video!.FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине видео от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
 
                 case MessageType.Document:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendDocument(userId, msg.Document!.FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине документа от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
 
                 case MessageType.Voice:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendVoice(userId, msg.Voice!.FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине голосового от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
                     break;
 
                 case MessageType.Audio:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendAudio(userId, msg.Audio!.FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логироваине аудио от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
@@ -138,7 +143,7 @@ public class DialogueService
                     break;
 
                 case MessageType.Animation:
-                    text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Caption ?? "";
+                    text = admin?.Tag != null ? $"{msg.Caption} {admin.Tag}" : msg.Caption ?? "";
                     await _bot.SendAnimation(userId, msg.Animation!.FileId, caption: text);
                     await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, // Логирование GIF от админа
                         msg.MessageId, messageThreadId: Settings.LogThreadId);
