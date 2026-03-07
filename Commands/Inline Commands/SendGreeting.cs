@@ -35,7 +35,16 @@ public class SendGreeting : InlineCommand
             BotUser? targetUser = _db.GetBotUser(targetId.Value);
             string topicName = targetUser?.Name ?? "Без имени";
 
-            await _bot.SendMessage(targetId.Value, admin.Greeting);
+            try
+            {
+                await _bot.SendMessage(targetId.Value, admin.Greeting);
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("bot was blocked by the user"))
+            {
+                await _bot.SendMessage(query.Message.Chat.Id, "❌ Пользователь заблокировал бота.", messageThreadId: query.Message.MessageThreadId);
+                return;
+            }
+
             await _bot.SendMessage(query.Message.Chat.Id, $"👋 Админ {query.From.FirstName} отправил приветствие.", messageThreadId: query.Message.MessageThreadId); 
             await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{query.From.FirstName} | {topicName}");
             await _log.MessageFromAdmin(targetId.Value, admin.Greeting, query.From.FirstName);

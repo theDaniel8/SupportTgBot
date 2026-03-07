@@ -33,7 +33,16 @@ public class SendFarewell : InlineCommand
         }
         else
         {
-            await _bot.SendMessage(targetId.Value, admin.Farewell);
+            try
+            {
+                await _bot.SendMessage(targetId.Value, admin.Farewell);
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("bot was blocked by the user"))
+            {
+                await _bot.SendMessage(query.Message.Chat.Id, "❌ Пользователь заблокировал бота.", messageThreadId: query.Message.MessageThreadId);
+                return;
+            }
+
             await _bot.SendMessage(query.Message.Chat.Id, $"🫂 Ваше прощание было отправлено пользователю.", messageThreadId: query.Message.MessageThreadId);   
             await _log.MessageFromAdmin(targetId.Value, admin.Farewell, query.From.FirstName);
         }

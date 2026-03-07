@@ -13,16 +13,18 @@ public class Handler
     private readonly TelegramBotClient _bot;
     private readonly DatabaseService _db;
     private readonly LogService _log;
+    private readonly DialogueService _dialogue;
 
     private readonly List<SlashCommand> _slashCommands;
     private readonly List<InlineCommand> _inlineCommands;
-    private readonly List<ReplyCommand> _replyCommands;
+    // private readonly List<ReplyCommand> _replyCommands;
 
     public Handler(TelegramBotClient bot, DatabaseService db, LogService log)
     {
         _bot = bot;
         _db = db;
         _log = log;
+        _dialogue = new DialogueService(bot, db, log);
         
         _slashCommands = new List<SlashCommand>
         {
@@ -44,9 +46,9 @@ public class Handler
             new CheckSubscription(bot, db),
         };
 
-        _replyCommands = new List<ReplyCommand>
+        /* _replyCommands = new List<ReplyCommand>
         {
-        };
+        }; */
     }
     
     public async Task OnError(Exception exception, HandleErrorSource source)
@@ -78,51 +80,13 @@ public class Handler
         }
 
         // Создание чата с пользователем
-        if (msg.Chat.Type == ChatType.Private && !_db.IsInDialogue(msg.From.Id) && !botUser.Ban)
-        {   
-            ForumTopic topic = await _bot.CreateForumTopic(Settings.GroupId, "⌛ Ожидание администратора");
-            _db.InsertDialogue(topic.MessageThreadId, msg.From.Id);
-
-            string username = msg.From.Username == null ? "Не установлен" : "@" + msg.From.Username;
-            UserProfilePhotos photos = await _bot.GetUserProfilePhotos(msg.From.Id, limit: 1);
-            
-            if (photos.Photos.Length > 0)
-            {
-                // photos.Photos[0] — массив PhotoSize[] (разные размеры одного фото), последний элемент — наибольшее разрешение
-                PhotoSize photo = photos.Photos[0].Last();
-
-                await _bot.SendPhoto(Settings.GroupId,
-                    photo.FileId,
-                    messageThreadId: topic.MessageThreadId,
-                    caption: $"💬 Пользователь создал чат\n\n<b>Юзернейм:</b> {username}\n<b>Ник:</b> {msg.From.FirstName} {msg.From.LastName}\n<b>ID:</b> {msg.From.Id}",
-                    parseMode: ParseMode.Html,
-                    replyMarkup: createTopicMarkup);
-            }
-            else
-            {
-                await _bot.SendMessage(Settings.GroupId,
-                    $"💬 Пользователь создал чат\n\n<b>Юзернейм:</b> {username}\n<b>Ник:</b> {msg.From.FirstName} {msg.From.LastName}\n<b>ID:</b> {msg.From.Id}",
-                    messageThreadId: topic.MessageThreadId, parseMode: ParseMode.Html, replyMarkup: createTopicMarkup);
-            }
-        }
+        await _dialogue.TryCreateDialogue(msg, botUser);
 
         // Пересылка сообщений пользователя админу
-        if (msg.Chat.Type == ChatType.Private && _db.IsInDialogue(msg.From.Id) && !botUser.Ban)
-        {
-            await _bot.ForwardMessage(Settings.GroupId, msg.Chat.Id, msg.MessageId, messageThreadId: _db.GetTopicIdByUserId(msg.From.Id));
-            await _log.MessageFromUser(msg);
-            return;
-        }
+        if (await _dialogue.TryForwardToAdmin(msg, botUser)) return;
 
         // Пересылка сообщений админа пользователю
-        if (_db.GetUserIdByTopicId(msg.MessageThreadId) is long userId && msg.Chat.Id == Settings.GroupId)
-        {
-            if (string.IsNullOrEmpty(msg.Text) || msg.Text.StartsWith("//")) return;
-            Admin? admin = _db.GetAdmin(msg.From.Id);
-            string text = admin?.Tag != null ? $"{msg.Text} {admin.Tag}" : msg.Text;
-            await _bot.SendMessage(userId, text);
-            await _log.MessageFromAdmin(userId, text, msg.From.FirstName);
-        }
+        if (await _dialogue.TryForwardToUser(msg)) return;
     }
 
     public async Task OnUpdate(Update update)
