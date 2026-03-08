@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Data.Sqlite;
 using Telegram.Bot;
@@ -20,12 +21,12 @@ public class SendGreeting : InlineCommand
         await _bot.AnswerCallbackQuery(query.Id);
         Admin? admin = _db.GetAdmin(query.From.Id);
         
-        if (query.Message == null || query.Message.MessageThreadId == null || admin == null) return;
+        if (query.Message == null || query.Message.MessageThreadId == null) return;
         
         long? targetId = _db.GetUserIdByTopicId(query.Message.MessageThreadId);
         if (targetId == null) return;
 
-        if (string.IsNullOrEmpty(admin.Greeting))
+        if (string.IsNullOrEmpty(admin?.Greeting) || admin == null)
         {
             await _bot.SendMessage(query.Message.Chat.Id, $"❌ Чтобы отправлять приветствие, вы должны сначала его установить.", messageThreadId: query.Message.MessageThreadId);
             return;

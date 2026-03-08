@@ -44,6 +44,7 @@ public class Handler
             new SendGreeting(bot, db, log),
             new SendFarewell(bot, db, log),
             new CheckSubscription(bot, db),
+            new RenameTopic(bot, db),
         };
 
         /* _replyCommands = new List<ReplyCommand>
@@ -146,6 +147,7 @@ public class Handler
         new InlineKeyboardButton[] { new InlineKeyboardButton("👋 Отправить приветствие", $"sendGreeting") },
         new InlineKeyboardButton[] { new InlineKeyboardButton("🫂 Отправить прощание", $"sendFarewell")  },
         new InlineKeyboardButton[] { new InlineKeyboardButton("❌ Удалить чат", $"deleteTopic") },
+        new InlineKeyboardButton[] { new InlineKeyboardButton("✏️ Переименовать чат", $"renameTopic") },
     });
 
     private async Task MainMenu(long id)
