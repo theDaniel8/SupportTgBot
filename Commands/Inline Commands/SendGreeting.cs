@@ -46,8 +46,15 @@ public class SendGreeting : InlineCommand
                 return;
             }
 
+            try
+            {
+                await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{query.From.FirstName} | {topicName}");
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("TOPIC_NOT_MODIFIED"))
+            {
+                // Тема уже имеет нужное имя, ничего не делаем
+            }
             await _bot.SendMessage(query.Message.Chat.Id, $"👋 Админ {query.From.FirstName} отправил приветствие.", messageThreadId: query.Message.MessageThreadId); 
-            await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{query.From.FirstName} | {topicName}");
             await _log.MessageFromAdmin(targetId.Value, admin.Greeting, query.From.FirstName);
         }
     }

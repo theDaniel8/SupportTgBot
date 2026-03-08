@@ -1,4 +1,4 @@
-using System.Runtime;
+using System.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -15,7 +15,10 @@ public class LogService
 
     public async Task MessageFromAdmin(long targetId, string text, string adminName)
     {
-        await _bot.SendMessage(Settings.GroupId, $"From: <b>{adminName}</b>\nTo: <b>{_db.GetBotUser(targetId)?.Name}</b>\n\n{text}", 
+        var safeName = HttpUtility.HtmlEncode(adminName);
+        var safeUserName = HttpUtility.HtmlEncode(_db.GetBotUser(targetId)?.Name);
+        var safeText = HttpUtility.HtmlEncode(text);
+        await _bot.SendMessage(Settings.GroupId, $"From: <b>{safeName}</b>\nTo: <b>{safeUserName}</b>\n\n{safeText}", 
         messageThreadId: Settings.LogThreadId, parseMode: ParseMode.Html);
     }
 
