@@ -172,4 +172,12 @@ public class DatabaseService
         return result == null ? null : Convert.ToInt64(result);
     }
 
+    public void UpdateTopicId(int topicId, long userId)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "UPDATE Dialogues SET topicId = @topicId WHERE userId = @userId";
+        cmd.Parameters.AddWithValue("@topicId", topicId);
+        cmd.Parameters.AddWithValue("@userId", userId);
+        cmd.ExecuteNonQuery();
+    }
 }

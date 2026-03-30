@@ -35,7 +35,7 @@ public class SendGreeting : InlineCommand
         {
             BotUser? targetUser = _db.GetBotUser(targetId.Value);
             string topicName = targetUser?.Name ?? "Без имени";
-
+            
             try
             {
                 await _bot.SendMessage(targetId.Value, admin.Greeting);
@@ -48,7 +48,7 @@ public class SendGreeting : InlineCommand
 
             try
             {
-                await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{query.From.FirstName} | {topicName}");
+                await _bot.EditForumTopic(query.Message.Chat.Id, query.Message.MessageThreadId.Value, name: $"{admin.Tag} | {topicName}");
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("TOPIC_NOT_MODIFIED"))
             {

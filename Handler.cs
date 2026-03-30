@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.VisualBasic;
 using SQLitePCL;
@@ -13,18 +14,17 @@ public class Handler
     private readonly TelegramBotClient _bot;
     private readonly DatabaseService _db;
     private readonly LogService _log;
-    private readonly DialogueService _dialogue;
-
+    private readonly List<DialogueService> _dialogue;
     private readonly List<SlashCommand> _slashCommands;
     private readonly List<InlineCommand> _inlineCommands;
-    // private readonly List<ReplyCommand> _replyCommands;
+    
 
     public Handler(TelegramBotClient bot, DatabaseService db, LogService log)
     {
         _bot = bot;
         _db = db;
         _log = log;
-        _dialogue = new DialogueService(bot, db, log);
+        
         
         _slashCommands = new List<SlashCommand>
         {
@@ -47,6 +47,13 @@ public class Handler
             new RenameTopic(bot, db),
         };
 
+        _dialogue = new List<DialogueService>
+        {
+            new CreateDialogue(bot,db, log),
+            new ForwardToAdmin(bot,db, log),
+            new ForwardToUser(bot,db, log),
+        };
+
         /* _replyCommands = new List<ReplyCommand>
         {
         }; */
@@ -55,16 +62,14 @@ public class Handler
     public async Task OnError(Exception exception, HandleErrorSource source)
     {
         Console.WriteLine(exception); 
+        await Task.CompletedTask;
     }
 
     public async Task OnMessage(Message msg, UpdateType type)
     {
         if (msg.From == null) return;
         _db.UpsertUser(msg.From.Id, msg.From.Username, $"{msg.From.FirstName} {msg.From.LastName}".Trim());
-        BotUser? botUser = _db.GetBotUser(msg.From.Id);
-        if (botUser == null) return;
-
-        // Проверка подписки на канал (только для личных сообщений)
+        
         if (msg.Chat.Type == ChatType.Private && !await IsSubscribedToChannel(msg.From.Id, _bot))
         {
             await SendSubscriptionRequired(msg.Chat.Id);
@@ -78,16 +83,16 @@ public class Handler
                 await command.Execute(msg);
                 return;
             }
+        }   
+
+        foreach (DialogueService dialogue in _dialogue)
+        {
+            if (dialogue.Сondition(msg))
+            {
+                await dialogue.Execute(msg);
+                return;
+            }
         }
-
-        // Создание чата с пользователем
-        await _dialogue.TryCreateDialogue(msg, botUser);
-
-        // Пересылка сообщений пользователя админу
-        if (await _dialogue.TryForwardToAdmin(msg, botUser)) return;
-
-        // Пересылка сообщений админа пользователю
-        if (await _dialogue.TryForwardToUser(msg)) return;
     }
 
     public async Task OnUpdate(Update update)
